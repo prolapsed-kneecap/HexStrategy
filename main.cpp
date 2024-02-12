@@ -1,4 +1,4 @@
-#include <SFML/Graphics.hpp>
+#include <libs/SFML-2.6.1/Graphics.hpp>
 
 
 class Cell {
