@@ -37,6 +37,8 @@ int main() {
                 window.close();
         }
 
+        //asd
+
         window.clear(sf::Color::White);
         window.draw(hex);
         window.draw(hex1);
