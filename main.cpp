@@ -1,4 +1,4 @@
-#include <libs/SFML-2.6.1/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 
 
 class Cell {
@@ -18,7 +18,7 @@ void Cell::setSymbol(char c) {
 int main() {
     sf::RenderWindow window(sf::VideoMode(640, 480), "SFML Application");
     sf::Texture texture;
-    texture.loadFromFile("C:\\Users\\79635\\CLionProjects\\HexStrategy\\images\\hex_2.png");
+    //texture.loadFromFile("C:\\Users\\79635\\CLionProjects\\HexStrategy\\images\\hex_2.png");
     sf::Sprite hex;
     sf::Sprite hex1;
     sf::Sprite hex2;
