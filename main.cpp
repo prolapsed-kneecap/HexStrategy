@@ -2,7 +2,16 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
+
+int cur_id = 0;
+int get_new_id() {
+    return cur_id++;
+}
+
+std::map<std::string, sf::Texture> textures;
+int hex_size = 200;
 
 class Cell {
     private:
@@ -91,6 +100,82 @@ class FieldHandler {
         }
 };
 
+class Unit {
+    private:
+        int speed, atk_range, armor, damage, i, j, id;
+        std::string cls, race;
+        sf::Sprite sprite;
+    public:
+        Unit(std::string tp, int i, int j) {
+            this->i = i;
+            this->j = j;
+            id = get_new_id();
+
+            if (tp == "marine") {
+                speed = 3;
+                atk_range = 2;
+                armor = 1;
+                damage = 3;
+                cls = "light";
+                race = "human";
+                sprite.setTexture(textures["marine"]);
+            }
+
+            sprite.setScale(100 / sprite.getLocalBounds().width, 100 / sprite.getLocalBounds().height);
+            float x = j * hex_size + hex_size/4;
+            float y = i * hex_size * 3/4 + hex_size/4;
+
+            if (i % 2 == 1) {
+                x += hex_size / 2;
+            }
+            sprite.setPosition(x, y);
+        }
+
+        int get_id() {
+            return id;
+        }
+
+        sf::Sprite get_sprite(){
+            return sprite;
+        }
+};
+
+class GraphicsHandler {
+    private:
+        std::vector<std::pair<int, sf::Sprite>> units;
+        std::vector<sf::Sprite> hex_sprites;
+    public:
+        GraphicsHandler(std::vector<sf::Sprite> hex_sprites) {
+            this->hex_sprites = hex_sprites;
+        }
+
+        void add_unit(int id, sf::Sprite sprite) {
+            units.push_back(std::pair<int, sf::Sprite>(id, sprite));
+        }
+
+        void del_unit(int id) {
+            for (int i = 0; i < units.size(); i++) {
+                if (units[i].first == id) {
+                    units.erase(units.begin() + i);
+                }
+            }
+        }
+
+        void update(sf::RenderWindow *window) {
+            (*window).clear(sf::Color::White);
+
+            for (int i = 0; i < hex_sprites.size(); i++) {
+                (*window).draw(hex_sprites[i]);
+            }
+
+            for (int i = 0; i < units.size(); i++) {
+                (*window).draw(units[i].second);
+            }
+
+            (*window).display();
+        }
+};
+
 int main() {
     sf::RenderWindow window(sf::VideoMode(1280, 720), "SFML Application");
     window.setFramerateLimit(60);
@@ -108,20 +193,23 @@ int main() {
         pfield[i] = field[i];
     }
 
-    FieldHandler field_handler(pfield, field_rows, field_cols);
-
+    /*
     std::vector<std::pair<int, int>> res = field_handler.get_available_cells(0, 0, 4);
     std::cout << std::endl;
     for (auto p: res) {
         std::cout << p.first << " " << p.second << std::endl;
     }
+     */
+
+
 
     sf::Image image;
-    image.loadFromFile("../images/hex_empty.png"); image.createMaskFromColor(sf::Color::White); sf::Texture hex_empty_texture; hex_empty_texture.loadFromImage(image);
-    image.loadFromFile("../images/hex_forest.png"); image.createMaskFromColor(sf::Color::White); sf::Texture hex_forest_texture; hex_forest_texture.loadFromImage(image);
+    sf::Texture texture;
+    image.loadFromFile("../images/hex_empty.png"); image.createMaskFromColor(sf::Color::White); texture.loadFromImage(image); textures["hex_empty_texture"] = texture;
+    image.loadFromFile("../images/hex_forest.png"); image.createMaskFromColor(sf::Color::White); texture.loadFromImage(image); textures["hex_forest_texture"] = texture;
+    image.loadFromFile("../images/marine.png"); image.createMaskFromColor(sf::Color::White); texture.loadFromImage(image); textures["marine"] = texture;
 
     sf::Sprite hex;
-
     std::vector<sf::Sprite> hex_sprites;
     for (int i = 0; i < field_rows; i++) {
         for (int j = 0; j < field_cols; j++) {
@@ -129,22 +217,31 @@ int main() {
             if (t == "void") continue;
 
             if (t == "empty") {
-                hex.setTexture(hex_empty_texture);
+                hex.setTexture(textures["hex_empty_texture"]);
             }
             else if (t == "forest") {
-                hex.setTexture(hex_forest_texture);
+                hex.setTexture(textures["hex_forest_texture"]);
             }
 
-            float x = j * 208;
-            float y = i * 206 * 3/4;
+            float x = j * hex_size;
+            float y = i * hex_size * 3/4;
 
             if (i % 2 == 1) {
-                x += 208 / 2;
+                x += hex_size / 2;
             }
             hex.setPosition(x, y);
 
             hex_sprites.push_back(hex);
         }
+    }
+
+    FieldHandler field_handler(pfield, field_rows, field_cols);
+    GraphicsHandler graphics_handler(hex_sprites);
+
+    std::vector<Unit> units = {Unit("marine", 0, 0), Unit("marine", 3, 0), Unit("marine", 1, 4)};
+
+    for (int i = 0; i < units.size(); i++) {
+        graphics_handler.add_unit(units[i].get_id(), units[i].get_sprite());
     }
 
     while (window.isOpen()) {
@@ -154,12 +251,6 @@ int main() {
                 window.close();
         }
 
-        window.clear(sf::Color::White);
-
-        for (int i = 0; i < hex_sprites.size(); i++) {
-            window.draw(hex_sprites[i]);
-        }
-
-        window.display();
+        graphics_handler.update(&window);
     }
 }
