@@ -51,9 +51,9 @@ class FieldHandler {
             cols = c;
         }
 
-        std::vector<std::pair<int, int>> get_available_cells(int start_i, int start_j, int move_len) {
+        std::vector<std::vector<int>> get_available_cells(int start_i, int start_j, int move_len) {
             std::vector<std::vector<int>> to_visit = {{start_i, start_j, move_len}};
-            std::vector<std::pair<int, int>> visited;
+            std::vector<std::vector<int>> visited = {};
 
             while (!to_visit.empty()) {
                 int hex_i = to_visit[0][0];
@@ -61,7 +61,19 @@ class FieldHandler {
                 int hex_mlen = to_visit[0][2];
 
                 to_visit.erase(to_visit.begin());
-                visited.push_back({hex_i, hex_j});
+
+                bool f = true;
+                for (auto v = visited.begin(); v != visited.end(); v++) {
+                    if ((*v)[0] == hex_i && (*v)[1] == hex_j) {
+                        if ((*v)[2] <= hex_mlen) {
+                            visited.erase(v);
+                            visited.push_back({hex_i, hex_j, hex_mlen});
+                        }
+                        f = false;
+                        break;
+                    }
+                }
+                if (f) visited.push_back({hex_i, hex_j, hex_mlen});
 
                 std::pair<int, int> to_check[6] = {std::pair<int, int>(-1, 0), std::pair<int, int>(0, -1), std::pair<int, int>(1, 0), std::pair<int, int>(0, 1)};
                 if (hex_i % 2 == 0) {
@@ -76,21 +88,24 @@ class FieldHandler {
                 for (auto p: to_check) {
                     int di = p.first, dj = p.second;
 
-                    bool f = false;
-                    for (auto v: to_visit) {
-                        if (hex_i + di == v[0] && hex_j + dj == v[1]) {
-                            f = true;
-                            break;
-                        }
-                    }
-                    if (f) continue;
-
                     if (0 <= hex_i + di && hex_i + di <= rows - 1 && 0 <= hex_j + dj && hex_j + dj <= cols - 1) {
-                        if (std::find(visited.begin(), visited.end(), std::pair<int, int>(hex_i + di, hex_j + dj)) == visited.end()) {
-                            int move_left = hex_mlen - field[hex_i + di][hex_j + dj].get_weight();
-                            if (move_left >= 0) {
-                                to_visit.push_back({hex_i + di, hex_j + dj, move_left});
+                        int move_left = hex_mlen - field[hex_i + di][hex_j + dj].get_weight();
+
+                        if (move_left >= 0) {
+                            bool in_visited = false, f = false;
+                            for (auto v = visited.begin(); v != visited.end(); v++) {
+                                if ((*v)[0] == hex_i + di && (*v)[1] == hex_j + dj) {
+                                    in_visited = true;
+                                    if ((*v)[2] < move_left) {
+                                        visited.erase(v);
+                                        f = true;
+                                        //to_visit.push_back({hex_i + di, hex_j + dj, move_left});
+                                        break;
+                                    }
+                                }
                             }
+
+                            if (!in_visited or f) to_visit.push_back({hex_i + di, hex_j + dj, move_left});
                         }
                     }
                 }
@@ -186,22 +201,13 @@ int main() {
             {Cell("empty"), Cell("empty"), Cell("forest"), Cell("empty"), Cell("empty")},
             {Cell("empty"), Cell("void"), Cell("forest"), Cell("void"), Cell("empty")}
     };
+
     int field_cols = sizeof field[0] / sizeof(Cell), field_rows = sizeof field / sizeof field[0];
 
     Cell *pfield[field_rows];
     for (int i = 0; i < field_rows; i++) {
         pfield[i] = field[i];
     }
-
-    /*
-    std::vector<std::pair<int, int>> res = field_handler.get_available_cells(0, 0, 4);
-    std::cout << std::endl;
-    for (auto p: res) {
-        std::cout << p.first << " " << p.second << std::endl;
-    }
-     */
-
-
 
     sf::Image image;
     sf::Texture texture;
@@ -237,6 +243,12 @@ int main() {
 
     FieldHandler field_handler(pfield, field_rows, field_cols);
     GraphicsHandler graphics_handler(hex_sprites);
+
+    auto res = field_handler.get_available_cells(2, 3, 4);
+    std::cout << std::endl;
+    for (auto p: res) {
+        std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
+    }
 
     std::vector<Unit> units = {Unit("marine", 0, 0), Unit("marine", 3, 0), Unit("marine", 1, 4)};
 
